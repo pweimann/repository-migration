@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import {Octokit} from '@octokit/core';
-import {readFileSync, writeFileSync} from 'fs';
+import {writeFileSync} from 'fs';
 import {config} from 'dotenv';
 
 config();
@@ -26,6 +26,7 @@ class RepositoryMigrator {
         this.sourceOrgs = process.env.SOURCE_ORGS?.split(',') || [];
         this.dryRun = options.dryRun !== undefined ? options.dryRun : true;
         this.logFile = `migration-log-${new Date().toISOString().split('T')[0]}.json`;
+        this.stopOnFailure = true;
 
         this.results = {
             successful: [],
@@ -43,7 +44,7 @@ class RepositoryMigrator {
             const response = await this.octokit.request('GET /orgs/{org}/repos', {
                 org: org,
                 type: 'all',
-                limit: 1000,
+                per_page: 100,
                 headers: {
                     'X-GitHub-Api-Version': '2022-11-28'
                 }
@@ -101,6 +102,10 @@ class RepositoryMigrator {
                 timestamp: new Date().toISOString()
             });
 
+            if (!this.dryRun && this.stopOnFailure) {
+                throw new Error(`Migration failed for ${repoFullName}: ${error.message}`);
+            }
+
             return {success: false, error};
         }
     }
@@ -149,7 +154,11 @@ class RepositoryMigrator {
             console.log(`Migrating ${repos.length} repositories from ${sourceOrg}...`);
 
             for (const repo of repos) {
-                await this.transferRepository(repo, sourceOrg);
+                const result = await this.transferRepository(repo, sourceOrg);
+
+                if (!result.success && !this.dryRun) {
+                    throw new Error(`Migration stopped due to failure`);
+                }
 
                 // Rate limiting - wait 1 second between transfers
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -190,6 +199,9 @@ class RepositoryMigrator {
      */
     async run() {
         console.log(`🚀 Migration to ${this.targetOrg} ${this.dryRun ? '(DRY RUN)' : ''}`);
+        if (!this.dryRun && this.stopOnFailure) {
+            console.log('⚠️  Stop-on-failure enabled - migration will abort on first error');
+        }
 
         try {
             await this.validateSetup();
@@ -198,13 +210,15 @@ class RepositoryMigrator {
                 console.log(`Migrating from: ${this.sourceOrgs.join(', ')}`);
                 await this.migrateFromOrganizations(this.sourceOrgs);
             } else {
-                throw new Error('No source organizations specified and no repos file found');
+                throw new Error('No source organizations specified');
             }
 
             this.generateReport();
 
         } catch (error) {
             console.error('❌ Migration failed:', error.message);
+
+            this.generateReport();
             process.exit(1);
         }
     }
@@ -212,7 +226,7 @@ class RepositoryMigrator {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     const migrator = new RepositoryMigrator({
-        dryRun: !process.argv.includes('--execute')
+        dryRun: !process.argv.includes('--execute'),
     });
 
     migrator.run();
