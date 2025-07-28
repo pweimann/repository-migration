@@ -1,0 +1,26 @@
+{
+    "name": "github-repo-migration",
+    "version": "1.0.0",
+    "description": "Script to migrate repositories between GitHub organizations",
+    "main": "migrate-repos.js",
+    "type": "module",
+    "scripts": {
+        "migrate": "node migrate-repos.js",
+        "test": "node test-migration.js"
+    },
+    "dependencies": {
+        "@octokit/core": "^5.2.2",
+        "dotenv": "^16.4.5"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "keywords": [
+        "github",
+        "migration",
+        "repository",
+        "organization"
+    ],
+    "author": "Paul Weimann",
+    "license": "MIT"
+}

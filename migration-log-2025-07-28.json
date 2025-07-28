@@ -1,0 +1,21 @@
+{
+  "successful": [
+    {
+      "repo": "My-Migration-Test/RepaymentScheduleNextGeneration",
+      "target": "My-Migration-Target-Org/RepaymentScheduleNextGeneration",
+      "dryRun": true,
+      "timestamp": "2025-07-28T13:21:36.728Z"
+    }
+  ],
+  "failed": [],
+  "skipped": [],
+  "summary": {
+    "total": 1,
+    "successful": 1,
+    "failed": 0,
+    "skipped": 0,
+    "successRate": 100,
+    "timestamp": "2025-07-28T13:21:37.729Z",
+    "dryRun": true
+  }
+}
